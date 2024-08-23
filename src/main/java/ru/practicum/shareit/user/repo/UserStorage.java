@@ -1,6 +1,6 @@
 package ru.practicum.shareit.user.repo;
 
-import ru.practicum.user.User;
+import ru.practicum.shareit.user.User;
 
 import java.util.List;
 
