@@ -1,47 +1,126 @@
 package ru.practicum.shareit.item.repo;
 
+import jakarta.validation.ValidationException;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import ru.practicum.shareit.exception.ObjectNotFoundException;
+import ru.practicum.shareit.item.ItemMapper;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.UserService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
-@Component
-public class InMemoryItemStorage implements ItemStorage{
+import static java.util.stream.Collectors.toList;
 
-    Map<Integer, Item> itemMap = new HashMap<>();
+@Component("InMemoryItemStorage")
+public class InMemoryItemStorage implements ItemStorage {
 
-    List<Item>items = new ArrayList<>();
+    private final UserService userService;
+    public Map<Integer, Item> items;
+    private Integer currentId;
 
-    @Override
-    public Item createItem(Item item) {
-        itemMap.put(item.getId(), item);
-        log.info("Создана вещь {} c id {}", item.getName(),item.getId());
-        return  item;
+    public InMemoryItemStorage(UserService userService) {
+        currentId = 0;
+        items = new HashMap<>();
+        this.userService = userService;
     }
 
     @Override
-    public void updatetem(Integer id, Item item) {
-        itemMap.put(id, item);
-        log.info("Вещь {} c id {} обновлена", item.getName(),id);
+    public Item create(Item item) {
+        if (userService.getUserById(item.getOwner()) == null) {
+            throw new ValidationException("Попытка создания вещи с несуществующим пользователем!");
+        }
+        if (isValidItem(item)) {
+            item.setId(++currentId);
+            items.put(item.getId(), item);
+        }
+        return item;
     }
 
     @Override
-    public Item getItemById(Integer id) {
-        return itemMap.get(id);
+    public Item update(Item item) {
+        if (item.getId() == null) {
+            throw new ValidationException("Передан пустой аргумент!");
+        }
+        if (!items.containsKey(item.getId())) {
+            throw new ObjectNotFoundException("Вещь с ID=" + item.getId() + " не найдена!");
+        }
+        if (item.getName() == null) {
+            item.setName(items.get(item.getId()).getName());
+        }
+        if (item.getDescription() == null) {
+            item.setDescription(items.get(item.getId()).getDescription());
+        }
+        if (item.getAvailable() == null) {
+            item.setAvailable(items.get(item.getId()).getAvailable());
+        }
+        if (isValidItem(item)) {
+            items.put(item.getId(), item);
+        }
+        return item;
     }
 
     @Override
-    public List<Item> getItems() {
-        return new ArrayList<>(itemMap.values());
+    public Item delete(Integer itemId) {
+        if (itemId == null) {
+            throw new ValidationException("Передан пустой аргумент!");
+        }
+        if (!items.containsKey(itemId)) {
+            throw new ObjectNotFoundException("Вещь с ID=" + itemId + " не найден!");
+        }
+        return items.remove(itemId);
     }
 
     @Override
-    public void deleteItems() {
-        itemMap.clear();
+    public List<Item> getItemsByOwner(Integer ownerId) {
+        return new ArrayList<>(items.values().stream()
+                .filter(item -> item.getOwner().equals(ownerId))
+                .collect(toList()));
+    }
+
+    @Override
+    public void deleteItemsByOwner(Integer ownerId) {
+        List<Integer> deleteIds = new ArrayList<>(items.values().stream()
+                .filter(item -> item.getOwner().equals(ownerId))
+                .map(item -> item.getId())
+                .collect(toList()));
+        for (Integer deleteId : deleteIds) {
+            items.remove(deleteId);
+        }
+    }
+
+    @Override
+    public Item getItemById(Integer itemId) {
+        if (!items.containsKey(itemId)) {
+            throw new ObjectNotFoundException("Вещь с ID=" + itemId + " не найдена!");
+        }
+        return items.get(itemId);
+    }
+
+    @Override
+    public List<Item> getItemsBySearchQuery(String text) {
+        List<Item> searchItems = new ArrayList<>();
+        if (!text.isBlank()) {
+            searchItems = items.values().stream()
+                    .filter(item -> item.getAvailable())
+                    .filter(item -> item.getName().toLowerCase().contains(text) ||
+                            item.getDescription().toLowerCase().contains(text))
+                    .collect(toList());
+        }
+        return searchItems;
+    }
+
+    private boolean isValidItem(Item item) {
+        if ((item.getName().isEmpty()) || (item.getDescription().isEmpty()) || (item.getAvailable() == null)) {
+            throw new ValidationException("У вещи некорректные данные");
+        }
+        return true;
     }
 }

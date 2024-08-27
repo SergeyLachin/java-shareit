@@ -8,14 +8,11 @@ import lombok.Data;
 
 @Data
 public class User {
-    @NotNull
     private Integer id;
     @Email
     @NotBlank
-    @NotEmpty
     private String email;
     @NotBlank
-    @NotEmpty
     private String name;
 
 }

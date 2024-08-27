@@ -1,18 +1,23 @@
 package ru.practicum.shareit.item.repo;
 
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 
 import java.util.List;
 
 public interface ItemStorage {
 
-    Item createItem (Item item);
+    Item create(Item item);
 
-    void updatetem (Integer id, Item item);
+    Item update(Item item);
 
-    Item getItemById (Integer id);
+    Item delete(Integer userId);
 
-    List<Item>getItems ();
+    List<Item> getItemsByOwner(Integer ownerId);
 
-    void deleteItems ();
+    List<Item> getItemsBySearchQuery(String text);
+
+    void deleteItemsByOwner(Integer ownderId);
+
+    Item getItemById(Integer itemId);
 }
