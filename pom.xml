@@ -61,18 +61,6 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>com.puppycrawl.tools</groupId>
-			<artifactId>checkstyle</artifactId>
-			<version>10.3</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/com.github.spotbugs/spotbugs-maven-plugin -->
-		<dependency>
-			<groupId>com.github.spotbugs</groupId>
-			<artifactId>spotbugs-maven-plugin</artifactId>
-			<version>4.8.6.2</version>
-		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.jacoco/jacoco-maven-plugin -->
 		<dependency>
