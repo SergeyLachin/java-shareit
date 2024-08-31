@@ -1,60 +1,57 @@
 package ru.practicum.shareit.user;
 
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.exception.ObjectNotFoundException;
-import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.exception.ConflictException;
+import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.user.dto.UserDto;
 
-import java.util.List;
-import java.util.Objects;
 
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/users")
+/**
+ * TODO Sprint add-controllers.
+ */
 @Slf4j
 @Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping(path = "/users")
 public class UserController {
     private final UserService userService;
 
-    @Validated
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getUsers();
+    @PostMapping()
+    public ResponseEntity<?> create(@Valid @RequestBody UserDto userDto) throws ValidationException, ConflictException {
+        log.info("поступил запрос на создание пользователя");
+        return new ResponseEntity<>(userService.createUser(userDto), HttpStatus.CREATED);
     }
 
-    @Validated
-    @PostMapping
-    public User addUser(@RequestBody User user) {
-        log.info("addUser attempt {}", user);
-        userService.createUser(user);
-        log.info("addUser {} success", user);
-        return user;
-    }
-
-    @Validated
     @PatchMapping("/{id}")
-    public User updateUser(@PathVariable @Positive Integer id, @RequestBody User user) {
-        if (user.getId() != null && !Objects.equals(id, user.getId())) {
-            throw  new ObjectNotFoundException("");
-        }
-        userService.updateUser(id, user);
-        log.info("updateUser attempt {}", id);
-        return userService.getUserById(id);
+    public ResponseEntity<?> updateUser(@PathVariable("id") @Min(1) Long id, @RequestBody UserDto userDto)
+            throws ConflictException {
+        log.info("поступил запрос на изменение данных пользователя");
+        return new ResponseEntity<>(userService.updateUser(userDto, id), HttpStatus.OK);
     }
 
-    @Validated
+    @GetMapping()
+    public ResponseEntity<?> findAllUsers() {
+        log.info("поступил запрос на получение данных всех пользователей");
+        return new ResponseEntity<>(userService.findAllUsers(), HttpStatus.OK);
+    }
+
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable @Positive Integer id) {
-        log.info("attempt to get user by id {}", id);
-        return userService.getUserById(id);
+    public ResponseEntity<?> findUserById(@PathVariable("id") @Min(1) Long id) {
+        log.info("поступил запрос на получение данных пользователя");
+        return new ResponseEntity<>(userService.findUserById(id), HttpStatus.OK);
     }
 
-    @Validated
     @DeleteMapping("/{id}")
-    public void deleteUserById(@PathVariable @Positive Integer id) {
-        userService.deleteUserById(id);
+    public ResponseEntity<?> deleteUser(@PathVariable("id") @Min(1) Long id) {
+        log.info("поступил запрос на получение данных пользователя");
+        return new ResponseEntity<>(userService.deleteUser(id), HttpStatus.OK);
     }
 }

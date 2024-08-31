@@ -5,18 +5,13 @@ import ru.practicum.shareit.item.model.Item;
 import java.util.List;
 
 public interface ItemStorage {
+    Item createItem(Item item);
 
-    Item create(Item item);
+    Item getItemOfId(Long itemId);
 
-    Item update(Item item);
+    Item updateItem(Long itemId, Item item);
 
-    Item delete(Integer userId);
+    List<Item> getItems(Long userId);
 
-    List<Item> getItemsByOwner(Integer ownerId);
-
-    List<Item> getItemsBySearchQuery(String text);
-
-    void deleteItemsByOwner(Integer ownderId);
-
-    Item getItemById(Integer itemId);
+    List<Item> getItemOfText(String text);
 }
