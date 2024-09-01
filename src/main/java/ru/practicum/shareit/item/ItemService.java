@@ -3,7 +3,6 @@ package ru.practicum.shareit.item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-//import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
@@ -20,7 +19,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ItemServise {
+public class ItemService {
 
     private final ItemStorage itemStorage;
     private final ItemMapper mapper;
@@ -43,7 +42,7 @@ public class ItemServise {
     }
 
     public Boolean checkName(String name) {
-        if (name != null && !name.equals("")) {
+        if (name != null && !name.isEmpty()) {
             return true;
         }
         throw new ObjectNotFoundException("имя не должно быть пустым");
@@ -90,7 +89,7 @@ public class ItemServise {
 
     public List<ItemDto> getItemOfText(Optional<Long> userId, String text) {
         if (userId.isPresent() && userId.get() > 0) {
-            if (text == null || text.length() == 0) return new ArrayList<>();
+            if (text == null || text.isEmpty()) return new ArrayList<>();
             List<Item> its = itemStorage.getItemOfText(text);
             List<ItemDto> list = new ArrayList<>();
             for (Item item : its) {
