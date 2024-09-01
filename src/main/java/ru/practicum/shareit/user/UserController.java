@@ -9,6 +9,7 @@ import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class UserController {
 
     @Validated
     @PatchMapping("/{id}")
-    public User updateUser(@PathVariable @Positive Integer id, @RequestBody User user) {
+    public User updateUser(@PathVariable @Positive Long id, @RequestBody User user) {
         if (user.getId() != null && id != user.getId()){
             throw  new ObjectNotFoundException("");
         }
@@ -46,14 +47,14 @@ public class UserController {
 
     @Validated
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable @Positive Integer id) {
+    public User getUserById(@PathVariable @Positive Long id) {
         log.info("attempt to get user by id {}", id);
         return userService.getUserById(id);
     }
 
     @Validated
     @DeleteMapping("/{id}")
-    public void deleteUserById(@PathVariable @Positive Integer id) {
+    public void deleteUserById(@PathVariable @Positive Long id) {
         userService.deleteUserById(id);
     }
 }

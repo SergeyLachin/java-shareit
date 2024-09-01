@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class User {
     @NotNull
-    private Integer id;
+    private Long id;
     @Email
     @NotBlank
     @NotEmpty

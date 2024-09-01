@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserService {
     private final UserStorage userStorage;
-    Integer id = 0;
+    Long id = 0L;
     private User user;
 
     public void createUser(User user) {
@@ -29,7 +29,7 @@ public class UserService {
         return userStorage.getUsers();
     }
 
-    public void updateUser(Integer id, User user) {
+    public void updateUser(Long id, User user) {
         if (user.getId() == null || user.getId() <= 0) {
             user.setId(id);
             log.info("Некорректно указан id.");
@@ -37,11 +37,11 @@ public class UserService {
             userStorage.updateUser(id, user);
     }
 
-    public User getUserById(Integer id) {
+    public User getUserById(Long id) {
         return userStorage.getUserById(id);
     }
 
-    public void deleteUserById(Integer id) {
+    public void deleteUserById(Long id) {
         userStorage.getUserById(id);
     }
 

@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class UserDto {
     @NotNull
-    private Integer id;
+    private Long id;
     @Email
     @NotBlank
     @NotEmpty
@@ -18,7 +18,7 @@ public class UserDto {
     @NotEmpty
     private String name;
 
-    public UserDto(Integer id, String name, String email) {
+    public UserDto(Long id, String name, String email) {
     }
 }
 
