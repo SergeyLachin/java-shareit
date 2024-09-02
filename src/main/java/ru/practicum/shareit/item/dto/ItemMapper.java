@@ -12,6 +12,7 @@ public class ItemMapper {
                 item.getDescription(),
                 item.getAvailable());
     }
+
     public Item toItem(ItemDto itemDto) {
         return new Item (itemDto.getName(),
                 itemDto.getDescription(),
