@@ -36,7 +36,7 @@ public class UserController {
     @Validated
     @PatchMapping("/{id}")
     public User updateUser(@PathVariable @Positive Long id, @RequestBody User user) {
-        if (user.getId() != null && id != user.getId()){
+        if (user.getId() != null && id != user.getId()) {
             throw  new ObjectNotFoundException("");
         }
         userService.updateUser(id, user);
