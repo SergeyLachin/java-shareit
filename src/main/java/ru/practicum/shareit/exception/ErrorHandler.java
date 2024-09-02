@@ -15,13 +15,13 @@ import java.util.NoSuchElementException;
 public class ErrorHandler {
 
     @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<Response> handleException (NoSuchElementException e) {
+    public ResponseEntity<Response> handleException(NoSuchElementException e) {
         log.info("NoSuchElementException! {}", e.getMessage());
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(SQLException.class)
-    public ResponseEntity<Response> handleException (SQLException e) {
+    public ResponseEntity<Response> handleException(SQLException e) {
         log.info("SQLException! {}", e.getMessage());
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
