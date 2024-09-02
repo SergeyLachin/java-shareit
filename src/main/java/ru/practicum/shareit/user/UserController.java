@@ -9,6 +9,7 @@ import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequiredArgsConstructor
@@ -36,7 +37,7 @@ public class UserController {
     @Validated
     @PatchMapping("/{id}")
     public User updateUser(@PathVariable @Positive Long id, @RequestBody User user) {
-        if (user.getId() != null && id != user.getId()) {
+        if (user.getId() != null && !Objects.equals(id, user.getId())) {
             throw  new ObjectNotFoundException("");
         }
         userService.updateUser(id, user);
