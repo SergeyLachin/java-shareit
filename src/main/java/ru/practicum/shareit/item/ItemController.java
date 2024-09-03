@@ -1,13 +1,13 @@
 package ru.practicum.shareit.item;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.ItemDto;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,39 +23,33 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping()
-    public ResponseEntity<?> createItem(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId,
-                                        @RequestBody ItemDto itemDto) {
-        log.info("поступил запрос на добавление вещи:" + itemDto + " пользователем:" + userId);
-        return new ResponseEntity<>(itemService.createItem(itemDto, userId), HttpStatus.CREATED);
+    public ItemDto createItem(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId, @Valid @RequestBody ItemDto dto) {
+        log.info("Запрос на добавление вещи {} владельцем {}", dto, userId);
+        return itemService.createItem(dto, userId);
     }
 
-    // только для владельца
-    @PatchMapping("/{itemId}")
-    public ResponseEntity<?> updateItem(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId, @PathVariable Long itemId,
-                                        @RequestBody ItemDto itemDto) {
-        log.info("поступил запрос на редактирование вещи:" + itemDto + " владельцем:" + userId);
-        return new ResponseEntity<>(itemService.updateItem(userId, itemId, itemDto), HttpStatus.OK);
+    @PatchMapping("{itemId}")
+    public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId, @RequestBody ItemDto dto,
+                              @PathVariable Long itemId) {
+        return itemService.updateItem(userId, itemId, dto);
     }
 
-    // для любого пользователя
-    @GetMapping("/{itemId}")
-    public ResponseEntity<?> getItemOfId(@RequestHeader("X-Sharer-User-Id") Long userId, @PathVariable Long itemId) {
-        log.info("поступил запрос на просмотр вещи по идентификатору:" + itemId);
-        return new ResponseEntity<>(itemService.getItemOfId(userId, itemId), HttpStatus.OK);
+    @GetMapping("{itemId}")
+    public ItemDto findItemById(@RequestHeader("X-Sharer-User-Id") Long userId, @PathVariable Long itemId) {
+        log.info("Запрос на просмотр вещи с id {}", itemId);
+        return itemService.getItemOfId(userId, itemId);
     }
 
-    // только для владельца
     @GetMapping()
-    public ResponseEntity<?> getItems(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId) {
-        log.info("поступил запрос на просмотр владельцем всех своих вещей,idUser=" + userId);
-        return new ResponseEntity<>(itemService.getItems(userId), HttpStatus.OK);
+    public List<ItemDto> getItems(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId) {
+        log.info("Запрос на просмотр своих вещей пользователем с id {}", userId);
+        return itemService.getItems(userId);
     }
 
-    // только доступные для аренды вещи
     @GetMapping("/search")
-    public ResponseEntity<?> getItemOfText(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId,
+    public List<ItemDto> getItemOfText(@RequestHeader("X-Sharer-User-Id") Optional<Long> userId,
                                            @RequestParam("text") String text) {
-        log.info("поступил запрос на просмотр доступной для аренды вещи:" + text);
-        return new ResponseEntity<>(itemService.getItemOfText(userId, text), HttpStatus.OK);
+        log.info("Запрос на просмотр {} для аренды", text);
+        return itemService.getItemOfText(userId, text);
     }
 }

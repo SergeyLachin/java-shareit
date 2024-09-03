@@ -2,7 +2,6 @@ package ru.practicum.shareit.user.repo;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.practicum.shareit.exception.AlreadyExistException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.user.model.User;
 
@@ -32,18 +31,21 @@ public class UserStorageImpl implements UserStorage {
     }
 
     @Override
-    public void updateUser(Long id, User user) {
+    public User updateUser(Long id, User user) {
         User oldUser = users.get(id);
-
-        if (!Objects.equals(user.getEmail(), oldUser.getEmail())) {
-            checkUserUniqueness(user);
+        if (!users.containsKey(id)) {
+            throw new ObjectNotFoundException("Пользователь с запрашиваемым id не зарегистрирован.");
         }
-        if (users.containsKey(id)) {
-            users.put(id, user);
-            log.info("Информация о пльзователе {} обновлена.", user.getId());
-        } else {
-            throw new ObjectNotFoundException("Пользователя с id: " + user.getId() + " нет.");
+        if (user.getName() != null && !user.getName().isBlank()) {
+            oldUser.setName(user.getName());
         }
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            oldUser.setEmail(user.getEmail());
+        }
+        users.remove(id);
+        users.put(id, oldUser);
+        log.info("Пользователь с айди успешно обновлен {}", id);
+        return oldUser;
     }
 
     @Override
@@ -58,13 +60,5 @@ public class UserStorageImpl implements UserStorage {
             throw new NoSuchElementException("Пользователя с id: " + id + " нет.");
         }
         return users.get(id);
-    }
-
-    private void checkUserUniqueness(User user) {
-        String email = user.getEmail();
-        boolean match = users.values().stream().map(User::getEmail).anyMatch(mail -> Objects.equals(mail, email));
-        if (match) {
-            throw new AlreadyExistException(user);
-        }
     }
 }
