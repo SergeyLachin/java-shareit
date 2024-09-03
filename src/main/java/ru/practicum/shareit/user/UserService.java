@@ -58,7 +58,7 @@ public class UserService {
     }
 
     public UserDto getUserById(Long id) {
-        return UserMapper.tuUserDto(userStorage.getUserById(id)) ;
+        return UserMapper.tuUserDto(userStorage.getUserById(id));
     }
 
     public void deleteUserById(Long id) {
