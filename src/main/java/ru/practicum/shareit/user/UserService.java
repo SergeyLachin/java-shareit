@@ -40,6 +40,9 @@ public class UserService {
     }
 
     public UserDto  updateUser(Long id, UserDto userDto) {
+        if (userDto.getId() != null && !Objects.equals(id, userDto.getId())) {
+            throw  new ObjectNotFoundException("Пользователь с такими данными не найден");
+        }
         if (getUserById(id) == null) {
             throw new ObjectNotFoundException("Пользователь с запрашиваемым id не зарегистрирован.");
         }

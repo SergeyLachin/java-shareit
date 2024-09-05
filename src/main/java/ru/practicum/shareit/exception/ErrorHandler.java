@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.sql.SQLException;
 import java.util.NoSuchElementException;
@@ -14,7 +15,15 @@ import java.util.NoSuchElementException;
 @ControllerAdvice
 public class ErrorHandler {
 
+
+    @ExceptionHandler(HttpServerErrorException.InternalServerError.class)
+    public ResponseEntity<Response> handleException(HttpServerErrorException.InternalServerError e) {
+        log.info("InternalServerError {}", e.getMessage());
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
+
     public ResponseEntity<Response> handleException(NoSuchElementException e) {
         log.info("NoSuchElementException! {}", e.getMessage());
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

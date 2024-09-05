@@ -22,7 +22,6 @@ import java.util.Optional;
 public class ItemService {
 
     private final ItemStorage itemStorage;
-    private final ItemMapper mapper;
     private final UserStorage userStorage;
 
     public ItemDto createItem(ItemDto itemDto, Optional<Long> userId) {
@@ -32,9 +31,9 @@ public class ItemService {
             }
             if (checkName(itemDto.getName()) && checkDescription(itemDto.getDescription())
                     && itemDto.getAvailable() != null) {
-                Item item = mapper.toItem(itemDto);
+                Item item = ItemMapper.toItem(itemDto);
                 item.setUserId(userId.get());
-                return mapper.toItemDto(itemStorage.createItem(item));
+                return ItemMapper.toItemDto(itemStorage.createItem(item));
             }
             throw new ObjectNotFoundException("У вещи неправильно заданы параметры:" + itemDto);
         }
@@ -57,10 +56,10 @@ public class ItemService {
 
     public ItemDto updateItem(Optional<Long> userId, Long itemId, ItemDto itemDto) {
         if (userId.isPresent() && userId.get() > 0) {
-            Item item = mapper.toItem(itemDto);
+            Item item = ItemMapper.toItem(itemDto);
             log.info("вещь для редактирования:" + item);
             if (itemStorage.getItemOfId(itemId).getUserId().equals(userId.get())) {
-                return mapper.toItemDto(itemStorage.updateItem(itemId, item));
+                return ItemMapper.toItemDto(itemStorage.updateItem(itemId, item));
             }
             throw new NoSuchElementException("нельзя редактировать чужие вещи!");
         }
@@ -73,7 +72,7 @@ public class ItemService {
             log.info("вещи пользователя:" + userId + its);
             List<ItemDto> list = new ArrayList<>();
             for (Item item : its) {
-                list.add(mapper.toItemDto(item));
+                list.add(ItemMapper.toItemDto(item));
             }
             return list;
         }
@@ -82,7 +81,7 @@ public class ItemService {
 
     public ItemDto getItemOfId(Long userId, Long itemId) {
         if (userId > 0 && itemId > 0) {
-            return mapper.toItemDto(itemStorage.getItemOfId(itemId));
+            return ItemMapper.toItemDto(itemStorage.getItemOfId(itemId));
         }
         throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
     }
@@ -93,7 +92,7 @@ public class ItemService {
             List<Item> its = itemStorage.getItemOfText(text);
             List<ItemDto> list = new ArrayList<>();
             for (Item item : its) {
-                list.add(mapper.toItemDto(item));
+                list.add(ItemMapper.toItemDto(item));
             }
             return list;
         }

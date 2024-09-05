@@ -1,5 +1,6 @@
 package ru.practicum.shareit.user;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,10 +33,6 @@ public class UserController {
 
     @PatchMapping("/{id}")
     public UserDto updateUser(@PathVariable @Positive Long id, @RequestBody UserDto userDto) {
-        if (userDto.getId() != null && !Objects.equals(id, userDto.getId())) {
-            throw  new ObjectNotFoundException("Пользователь с такими данными не найден");
-        }
-        userService.updateUser(id, userDto);
         log.info("Обновление пользователя {}", id);
         return userService.updateUser(id, userDto);
     }
