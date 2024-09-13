@@ -38,6 +38,17 @@ public class ItemService {
             throw new ObjectNotFoundException("У вещи неправильно заданы параметры:" + itemDto);
         }
         throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
+//
+//        if (userId.isPresent() && userId.get() > 0) {
+//            if (userRepository.findById(userId.get()).isEmpty()) {
+//                throw new NoSuchElementException("пользователь не существует");
+//            }
+//            Item item = itemMapper.toItem(itemDto);
+//            item.setOwner(userRepository.findById(userId.get()).get());
+//            item.setComments(new ArrayList<>());
+//            return ItemMapper.toItemDto(itemRepository.save(item), null, null, new ArrayList<>());
+//        }
+//        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
     }
 
     public Boolean checkName(String name) {
