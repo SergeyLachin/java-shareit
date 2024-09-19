@@ -1,13 +1,40 @@
 package ru.practicum.shareit.request;
 
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import jakarta.persistence.*;
+import ru.practicum.shareit.user.model.User;
+
 import java.time.LocalDateTime;
 
 /**
  * TODO Sprint add-item-requests.
  */
+@Getter
+@Setter
+@Entity
+@Table(name = "requests")
 public class ItemRequest {
-    private Integer id;                  // уникальный идентификатор запроса
-    private String description;       // текст запроса, содержащий описание требуемой вещи
-    private String requestorName;     // пользователь, создавший запрос
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private long id;
+    private String description;
+
+    @ManyToOne
+    @JoinColumn(name = "requestor_id", referencedColumnName = "id")
+    private User requestor;
+
+    @Column(name = "created")
     private LocalDateTime created;
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getId() {
+        return id;
+    }
 }

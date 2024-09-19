@@ -7,20 +7,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.user.dto.UserDto;
 
-import java.util.List;
-
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/users")
 @Slf4j
 @Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping(path = "/users")
 public class UserController {
     private final UserService userService;
-
-    @GetMapping
-    public List<UserDto> getAllUsers() {
-        return userService.getUsers();
-    }
 
     @PostMapping
     public UserDto createUser(@RequestBody UserDto userDto) {
@@ -43,6 +36,6 @@ public class UserController {
     @DeleteMapping("/{id}")
     public void deleteUserById(@PathVariable @Positive Long id) {
         log.info("Удаление пользователя {}", id);
-        userService.deleteUserById(id);
+        userService.deleteUser(id);
     }
 }

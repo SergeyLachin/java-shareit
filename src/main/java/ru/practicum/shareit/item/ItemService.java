@@ -3,110 +3,179 @@ package ru.practicum.shareit.item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.ObjectNotFoundException;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.item.comment.CommentRepository;
+import ru.practicum.shareit.item.comment.dto.CommentDto;
+import ru.practicum.shareit.item.comment.dto.CommentDtoLittle;
+import ru.practicum.shareit.item.comment.dto.CommentMapper;
+import ru.practicum.shareit.item.comment.model.Comment;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.repo.ItemStorage;
-import ru.practicum.shareit.user.repo.UserStorage;
+import ru.practicum.shareit.item.repo.ItemRepository;
+import ru.practicum.shareit.user.UserService;
+import ru.practicum.shareit.user.dto.UserMapper;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.repo.UserRepository;
+import ru.practicum.shareit.exception.ValidationException;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemService {
 
-    private final ItemStorage itemStorage;
-    private final UserStorage userStorage;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
+    private final UserService userService;
 
-    public ItemDto createItem(ItemDto itemDto, Optional<Long> userId) {
+
+    public ItemDto createItem(ItemDto itemDto, Optional<Long> userId) throws ValidationException {
         if (userId.isPresent() && userId.get() > 0) {
-            if (userStorage.getUserById(userId.get()) == null) {
+            if (userRepository.findById(userId.get()).isEmpty()) {
                 throw new NoSuchElementException("пользователь не существует");
             }
-            if (checkName(itemDto.getName()) && checkDescription(itemDto.getDescription())
-                    && itemDto.getAvailable() != null) {
-                Item item = ItemMapper.toItem(itemDto);
-                item.setUserId(userId.get());
-                return ItemMapper.toItemDto(itemStorage.createItem(item));
-            }
-            throw new ObjectNotFoundException("У вещи неправильно заданы параметры:" + itemDto);
-        }
-        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
-//
-//        if (userId.isPresent() && userId.get() > 0) {
-//            if (userRepository.findById(userId.get()).isEmpty()) {
-//                throw new NoSuchElementException("пользователь не существует");
-//            }
-//            Item item = itemMapper.toItem(itemDto);
-//            item.setOwner(userRepository.findById(userId.get()).get());
-//            item.setComments(new ArrayList<>());
-//            return ItemMapper.toItemDto(itemRepository.save(item), null, null, new ArrayList<>());
-//        }
-//        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
-    }
-
-    public Boolean checkName(String name) {
-        if (name != null && !name.isEmpty()) {
-            return true;
-        }
-        throw new ObjectNotFoundException("имя не должно быть пустым");
-    }
-
-    public Boolean checkDescription(String desc) {
-        if (desc != null) {
-            return true;
-        }
-        throw new ObjectNotFoundException("описание не должно быть пустым");
-    }
-
-    public ItemDto updateItem(Optional<Long> userId, Long itemId, ItemDto itemDto) {
-        if (userId.isPresent() && userId.get() > 0) {
             Item item = ItemMapper.toItem(itemDto);
+            item.setOwner(userRepository.findById(userId.get()).get());
+            item.setComments(new ArrayList<>());
+            return ItemMapper.toItemDto(itemRepository.save(item), null, null, new ArrayList<>());
+        }
+        throw new ValidationException("идентификатор пользователя отрицательный или отсутствует");
+    }
+
+    public ItemDto updateItem(Optional<Long> userId, Long itemId, ItemDto itemDto) throws ValidationException {
+        if (userId.isPresent() && userId.get() > 0) {
+            Item item = itemRepository.findById(itemId).get();
             log.info("вещь для редактирования:" + item);
-            if (itemStorage.getItemOfId(itemId).getUserId().equals(userId.get())) {
-                return ItemMapper.toItemDto(itemStorage.updateItem(itemId, item));
+            if (item.getOwner().getId() == userId.get()) {
+                if (itemDto.getName() != null) {
+                    item.setName(itemDto.getName());
+                }
+                if (itemDto.getDescription() != null) {
+                    item.setDescription(itemDto.getDescription());
+                }
+                if (itemDto.getAvailable() != null) {
+                    item.setAvailable(itemDto.getAvailable());
+                }
+                itemRepository.save(item);
+
+                Booking lastBooking = bookingLast(item);
+
+                Booking nextBooking = bookingNext(item);
+
+                List<CommentDto> commentsDto = commentDto(item);
+                return ItemMapper.toItemDto(item, lastBooking, nextBooking, commentsDto);
             }
             throw new NoSuchElementException("нельзя редактировать чужие вещи!");
         }
-        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
+        throw new ValidationException("идентификатор пользователя отрицательный или отсутствует");
     }
 
-    public List<ItemDto> getItems(Optional<Long> userId) {
+    public List<ItemDto> getItems(Optional<Long> userId) throws ValidationException {
         if (userId.isPresent() && userId.get() > 0) {
-            List<Item> its = itemStorage.getItems(userId.get());
-            log.info("вещи пользователя:" + userId + its);
-            List<ItemDto> list = new ArrayList<>();
-            for (Item item : its) {
-                list.add(ItemMapper.toItemDto(item));
-            }
-            return list;
+            userRepository.findById(userId.get())
+                    .orElseThrow(() -> new NoSuchElementException("пользователь c идентификатором " + userId + " не существует"));
+
+            List<Item> items = itemRepository.findAllByOwnerId(userId.get());
+
+            return getItemDto(items);
         }
-        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
+        throw new ValidationException("идентификатор пользователя отрицательный или отсутствует");
     }
 
-    public ItemDto getItemOfId(Long userId, Long itemId) {
+    public ItemDto getItemOfId(Long userId, Long itemId) throws ValidationException {
         if (userId > 0 && itemId > 0) {
-            return ItemMapper.toItemDto(itemStorage.getItemOfId(itemId));
+            Item item = itemRepository.findById(itemId)
+                    .orElseThrow(() -> new NoSuchElementException("вещь c идентификатором " + itemId + " не существует"));
+
+            Booking lastBooking = bookingRepository.findPastOwnerBookings(item.getId(), userId, LocalDateTime.now())
+                    .stream()
+                    .min(Comparator.comparing(Booking::getEnd))
+                    .orElse(null);
+
+            Booking nextBooking = bookingRepository.findFutureOwnerBookings(item.getId(), userId, LocalDateTime.now())
+                    .stream()
+                    .max(Comparator.comparing(Booking::getStart))
+                    .orElse(null);
+
+            List<CommentDto> commentsDto = commentDto(item);
+            return ItemMapper.toItemDto(item, lastBooking, nextBooking, commentsDto);
         }
-        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
+        throw new ValidationException("идентификатор пользователя отрицательный или отсутствует");
     }
 
-    public List<ItemDto> getItemOfText(Optional<Long> userId, String text) {
+    public List<ItemDto> getItemOfText(Optional<Long> userId, String text) throws ValidationException {
         if (userId.isPresent() && userId.get() > 0) {
-            if (text == null || text.isEmpty()) return new ArrayList<>();
-            List<Item> its = itemStorage.getItemOfText(text);
-            List<ItemDto> list = new ArrayList<>();
-            for (Item item : its) {
-                list.add(ItemMapper.toItemDto(item));
-            }
-            return list;
+            if (text == null || text.length() == 0) return new ArrayList<>();
+            List<Item> its = itemRepository.search(text);
+            return getItemDto(its);
         }
-        throw new ObjectNotFoundException("идентификатор пользователя отрицательный или отсутствует");
+        throw new ValidationException("идентификатор пользователя отрицательный или отсутствует");
     }
+
+    private List<ItemDto> getItemDto(List<Item> its) {
+        List<ItemDto> list = new ArrayList<>();
+        for (Item item : its) {
+            Booking lastBooking = bookingLast(item);
+
+            Booking nextBooking = bookingNext(item);
+
+            List<CommentDto> commentsDto = commentDto(item);
+            item.setLastBooking(lastBooking);
+            item.setNextBooking(nextBooking);
+            item.setComments(commentsDto);
+            list.add(ItemMapper.toItemDto(item, lastBooking, nextBooking, commentsDto));
+        }
+        return list;
+    }
+
+    public CommentDto createComment(CommentDtoLittle commentDtoLittle, Long itemId, long userId) {
+        if (commentDtoLittle.getText() == null || commentDtoLittle.getText().equals("")) {
+            throw new ValidationException("отзыв не может быть пустым");
+        }
+
+        Long bookingsCount = bookingRepository.countAllByItemIdAndBookerIdAndEndBefore(itemId, userId, LocalDateTime.now());
+
+        if (bookingsCount == null || bookingsCount == 0) {
+            throw new ValidationException("сначала надо взять эту вещь");
+        }
+
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NoSuchElementException("вещь c идентификатором " + itemId + " не существует"));
+        User user = UserMapper.toUser(userService.getUserById(userId));
+        Comment comment = CommentMapper.toComment(commentDtoLittle);
+        comment.setItem(item);
+        comment.setAuthor(user);
+        comment.setCreated(LocalDateTime.now());
+        return CommentMapper.toCommentDto(commentRepository.save(comment));
+    }
+
+    public Booking bookingLast(Item item) {
+        return bookingRepository.findAllByItemIdAndStartBeforeOrderByStartDesc(item.getId(), LocalDateTime.now())
+                .stream()
+                .min(Comparator.comparing(Booking::getEnd))
+                .orElse(null);
+    }
+
+    public Booking bookingNext(Item item) {
+        return bookingRepository.findAllByItemIdAndStartAfterOrderByStartDesc(item.getId(), LocalDateTime.now())
+                .stream()
+                .max(Comparator.comparing(Booking::getStart))
+                .orElse(null);
+    }
+
+    public List<CommentDto> commentDto(Item item) {
+        return commentRepository.getAllByItemId(item.getId())
+                .stream()
+                .map(CommentMapper::toCommentDto)
+                .collect(Collectors.toList());
+    }
+
 }

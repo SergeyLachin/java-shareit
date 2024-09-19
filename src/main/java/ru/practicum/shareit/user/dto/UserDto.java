@@ -6,18 +6,16 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Data
 @AllArgsConstructor
 public class UserDto {
-    @NotNull
     private Long id;
+    @NotBlank
+    private String name;
     @Email
     @NotBlank
-    @NotEmpty
     private String email;
-    @NotBlank
-    @NotEmpty
-    private String name;
 }
-

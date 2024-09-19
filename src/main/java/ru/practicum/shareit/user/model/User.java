@@ -7,26 +7,19 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.*;
+import jakarta.persistence.*;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users", schema = "public")
+@Table(name = "users")
 public class User {
     @Id
-    @NotNull
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;        // уникальный идентификатор пользователя
+    private String name;    // имя или логин пользователя
     @Email
-    @NotBlank
-    @NotEmpty
-    private String email;
-    @NotBlank
-    @NotEmpty
-    private String name;
-
-    public User() {
-
-    }
+    private String email;   // адрес электронной почты
 }
