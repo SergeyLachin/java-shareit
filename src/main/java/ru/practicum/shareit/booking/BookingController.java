@@ -1,55 +1,47 @@
 package ru.practicum.shareit.booking;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.dto.BookingOutputDto;
 
-/**
- * TODO Sprint add-bookings.
- */
-@Slf4j
+
+import java.util.List;
+
 @RestController
-@RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
+@RequestMapping(path = "/bookings")
 public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<?> save(@RequestBody BookingDto bookingDto,
-                                  @RequestHeader("X-Sharer-User-Id") long userId) {
-        log.info("поступил запрос на создание бронирования {}", bookingDto);
-        return new ResponseEntity<>(bookingService.save(bookingDto, userId), HttpStatus.CREATED);
+    public BookingOutputDto createBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                          @Valid @RequestBody BookingDto dto) {
+        return bookingService.createBooking(dto, userId);
     }
 
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<?> approve(@PathVariable long bookingId,
-                                     @RequestParam Boolean approved,
-                                     @RequestHeader("X-Sharer-User-Id") long userId) {
-        log.info("поступил запрос на изменение статуса бронирования с id {}", bookingId);
-        return new ResponseEntity<>(bookingService.approve(userId, bookingId, approved), HttpStatus.OK);
+    public BookingOutputDto confirmBookingByOwner(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                  @PathVariable Long bookingId, @RequestParam Boolean approved) {
+        return bookingService.confirmBookingByOwner(userId, bookingId, approved);
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<?> getById(@PathVariable long bookingId,
-                                     @RequestHeader("X-Sharer-User-Id") long userId) {
-        log.info("пользователем с id {} запрошено бронирование с id {}", userId, bookingId);
-        return new ResponseEntity<>(bookingService.getById(bookingId, userId), HttpStatus.OK);
+    public BookingOutputDto findBookingById(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                            @PathVariable Long bookingId) {
+        return bookingService.findBookingById(userId, bookingId);
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllForBooker(@RequestHeader("X-Sharer-User-Id") long userId,
-                                             @RequestParam(required = false, defaultValue = "ALL") String state) {
-        log.info("поступил запрос на получение списка бронирований со статусом {} пользователя с id {}", state, userId);
-        return new ResponseEntity<>(bookingService.findAllForBooker(userId, state), HttpStatus.OK);
+    public List<BookingOutputDto> findAllUsersBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                      @RequestParam(defaultValue = "ALL", required = false) String state) {
+        return bookingService.findAllUsersBooking(userId, state);
     }
 
     @GetMapping("/owner")
-    public ResponseEntity<?> getAllForOwner(@RequestHeader("X-Sharer-User-Id") long owner,
-                                            @RequestParam(required = false, defaultValue = "ALL") String state) {
-        log.info("поступил запрос на получение списка бронирований со статусом {} для вещей пользователя с id {}", state, owner);
-        return new ResponseEntity<>(bookingService.findAllForOwner(owner, state), HttpStatus.OK);
+    public List<BookingOutputDto> findAllBookingsForItems(@RequestHeader("X-Sharer-User-Id") Long userId,
+                                                          @RequestParam(defaultValue = "ALL", required = false) String state) {
+        return bookingService.findAllBookingsForItems(userId, state);
     }
 }

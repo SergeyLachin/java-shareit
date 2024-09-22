@@ -2,20 +2,20 @@ package ru.practicum.shareit.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Data
 @AllArgsConstructor
+@Getter
+@Setter
 public class UserDto {
     private Long id;
-    @NotBlank
+
+    @NotBlank(message = "Имя пользователя не указано.")
     private String name;
-    @Email
-    @NotBlank
+
+    @NotBlank(message = "Почтовый адрес пустой.")
+    @Email(message = "Почтовый адрес не соответствует требованиям")
     private String email;
 }

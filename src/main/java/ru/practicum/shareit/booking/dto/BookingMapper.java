@@ -1,61 +1,58 @@
 package ru.practicum.shareit.booking.dto;
 
+import lombok.RequiredArgsConstructor;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.springframework.stereotype.Component;
-import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserMapper;
+import ru.practicum.shareit.user.model.User;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
-//@Component
-//@Mapper
-//public interface BookingMapper {
-//
-//    @Mapping(target = "itemId", ignore = true)
-//    BookingDto toBookingDto(Booking booking);
-//
-//    @Mapping(target = "id", ignore = true)
-//    @Mapping(target = "item", ignore = true)
-//    @Mapping(target = "booker", ignore = true)
-//    Booking toBooking(BookingDto bookingDto);
-//}
-
-@Component
+@RequiredArgsConstructor
+@Mapper
 public class BookingMapper {
 
-    public  BookingDto toBookingDto(Booking booking) {
+    public static Booking toBooking(BookingDto dto, Item item, User booker) {
+        return new Booking(
+                dto.getId(),
+                item,
+                dto.getStart(),
+                dto.getEnd(),
+                booker,
+                dto.getStatus()
+        );
+    }
+
+    public static BookingDto doBookingDto(Booking booking) {
         return new BookingDto(
                 booking.getId(),
-                booking.getItem(),
+                booking.getItem().getId(),
                 booking.getStart(),
                 booking.getEnd(),
-                booking.getItem(),
-                booking.getBooker(),
+                booking.getBooker().getId(),
                 booking.getStatus()
         );
     }
 
-        public  Booking toBooking(BookingDto bookingDto) {
-            return new Booking(
-                    bookingDto.getId(),
-                    bookingDto.getItem(),
-                    bookingDto.getStart(),
-                    bookingDto.getEnd(),
-                    bookingDto.getItem(),
-                    bookingDto.getBooker(),
-                    bookingDto.getStatus()
-            );
-//        private long id;
-//        private long itemId;
-//        private LocalDateTime start;
-//        private LocalDateTime end;
-//        private ItemDto item;
-//        private UserDto booker;
-//        private BookingStatus status;
+    public static BookingOutputDto doBookingOutputDto(Booking booking) {
+        ItemDto itemDto = ItemMapper.doItemDto(booking.getItem());
+        UserDto userDto = UserMapper.doUserDto(booking.getBooker());
+        return new BookingOutputDto(
+                booking.getId(),
+                itemDto,
+                booking.getStart(),
+                booking.getEnd(),
+                userDto,
+                booking.getStatus()
+        );
+    }
+
+    public static List<BookingOutputDto> makeBookingsOutputList(List<Booking> bookings) {
+        return bookings.stream().map(BookingMapper::doBookingOutputDto).collect(Collectors.toList());
     }
 }

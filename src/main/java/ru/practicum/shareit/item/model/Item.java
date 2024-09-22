@@ -1,47 +1,38 @@
 package ru.practicum.shareit.item.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.item.comment.dto.CommentDto;
-import ru.practicum.shareit.request.ItemRequest;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
+import jakarta.persistence.*;
 import java.util.List;
 
-/**
- * TODO Sprint add-controllers.
- */
 @Getter
 @Setter
+@AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@ToString
 @Table(name = "items")
 public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
+    @Column(name = "item_id")
     private Long id;
-    @Column
+
+    @Column(name = "item_name", nullable = false)
     private String name;
+
+    @Column(name = "item_description", nullable = false)
     private String description;
+
+    @Column(name = "is_available", nullable = false)
     private Boolean available;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
-    @ManyToOne
-    @JoinColumn(name = "requests_id", referencedColumnName = "id")
-    private ItemRequest request;
-
-    @Transient
-    private Booking lastBooking;
-    @Transient
-    private Booking nextBooking;
-    @Transient
-    private List<CommentDto> comments;
-
-
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "request_id")
+    private List<ItemRequest> request;
 }

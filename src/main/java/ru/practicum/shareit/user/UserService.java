@@ -1,79 +1,86 @@
 package ru.practicum.shareit.user;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.AlreadyExistException;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserMapper;
-import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repo.UserRepository;
-import ru.practicum.shareit.user.repo.UserStorage;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 
-import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Getter
-@Slf4j
 @Service
+@Slf4j
+@Transactional
 @RequiredArgsConstructor
-public class UserService {
-    private final UserStorage userStorage;
-    private final UserRepository userRepository;
-    Long id = 0L;
-    //private User user;
+public class  UserService {
+    private final UserRepository userDao;
 
-
-    public UserDto createUser(UserDto userDto) {
-        validateUser(userDto);
-        User user = UserMapper.toUser(userDto);
-        return UserMapper.toDto(userRepository.save(user));
+    public UserDto createUser(UserDto dto) {
+        validateUser(dto);
+        User user = UserMapper.toUser(dto);
+        User savedUser = userDao.save(user);
+        log.info("Создан пользователь {}.", savedUser);
+        return UserMapper.doUserDto(savedUser);
     }
 
-    public UserDto  updateUser(Long id, UserDto userDto) {
-        if (userDto.getId() == null) {
-            userDto.setId(id);
+    @Transactional(readOnly = true)
+    public UserDto findUserById(long id) {
+        User user = userDao.findById(id).orElseThrow(() -> new ObjectNotFoundException("Пользователь не найден."));
+        log.info("Найден пользователь с айди {}.", id);
+        return UserMapper.doUserDto(user);
+    }
+
+    public UserDto updateUser(UserDto dto, long id) {
+        User oldUser = userDao.findById(id).orElseThrow(() -> new ObjectNotFoundException("Пользователь не найден."));
+        if (dto.getId() == null) {
+            dto.setId(id);
         }
-        User user = userRepository.findById(id)
+        User user = userDao.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Пользователь с ID=" + id + " не найден!"));
-        if (userDto.getName() != null) {
-            user.setName(userDto.getName());
+        if (dto.getName() != null) {
+            user.setName(dto.getName());
         }
-        if ((userDto.getEmail() != null) && (userDto.getEmail() != user.getEmail())) {
-            if (userRepository.findByEmail(userDto.getEmail())
+        if ((dto.getEmail() != null) && (dto.getEmail() != user.getEmail())) {
+            if (userDao.findByEmail(dto.getEmail())
                     .stream()
-                    .filter(u -> u.getEmail().equals(userDto.getEmail()))
-                    .allMatch(u -> u.getId().equals(userDto.getId()))) {
-                user.setEmail(userDto.getEmail());
+                    .filter(u -> u.getEmail().equals(dto.getEmail()))
+                    .allMatch(u -> u.getId().equals(dto.getId()))) {
+                user.setEmail(dto.getEmail());
             } else {
                 throw new ObjectNotFoundException("Пользователь с E-mail=" + user.getEmail() + " уже существует!");
             }
 
         }
-        return UserMapper.toDto(userRepository.save(user));
+
+//        if (dto.getName() != null && !dto.getName().isBlank()) {
+//            oldUser.setName(dto.getName());
+//        }
+//        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+//            oldUser.setEmail(dto.getEmail());
+//        }
+
+        User savedUser = userDao.save(oldUser);
+        log.info("Пользователь с айди {} успешно обновлен.", id);
+        return UserMapper.doUserDto(savedUser);
     }
 
-
-    public List<UserDto> findAllUsers() {
-        Collection<User> list = userRepository.findAll();
-        List<UserDto> listDto = new ArrayList<>();
-        for (User user : list) {
-            listDto.add(UserMapper.toDto(user));
-        }
-        return listDto;
+    public void removeUserById(long id) {
+        userDao.deleteById(id);
+        log.info("Пользователь с айди успешно удален {}.", id);
     }
 
-
-    public UserDto getUserById(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("пользователь c идентификатором " + id + " не существует"));
-        return UserMapper.toDto(user);
-    }
-
-
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+    @Transactional(readOnly = true)
+    public List<UserDto> findAll() {
+        List<UserDto> users = userDao.findAll().stream()
+                .map(UserMapper::doUserDto)
+                .collect(Collectors.toList());
+        log.info("Всё пользователи успешно получены.");
+        return users;
     }
 
     public void validateUser(UserDto userDto) {
@@ -81,11 +88,17 @@ public class UserService {
             log.warn("Ошибка в данных - неверный адрес электронной почты {}", userDto.getEmail());
             throw new ObjectNotFoundException("Неверный адрес электронной почты");
         }
-        List<UserDto> users = findAllUsers();
+        List<UserDto> users = findAll();
         for (UserDto user1 : users) {
             if (userDto.getEmail().contains(user1.getEmail())) {
                 throw new ObjectNotFoundException("Неверный адрес электронной почты");
             }
+        }
+    }
+
+    public static void checkUserAvailability(UserRepository dao, long id) {
+        if (!dao.existsById(id)) {
+            throw new ObjectNotFoundException("Пользователь с запрашиваемым айди не зарегистрирован.");
         }
     }
 }
