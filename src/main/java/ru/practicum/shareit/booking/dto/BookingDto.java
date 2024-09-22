@@ -8,9 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.practicum.shareit.booking.status.BookingStatus;
 
-
 import java.time.LocalDateTime;
-
 /**
  * TODO Sprint add-bookings.
  */
