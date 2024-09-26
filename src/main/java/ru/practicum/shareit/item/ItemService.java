@@ -35,27 +35,27 @@ import static java.util.stream.Collectors.toList;
 @Transactional
 @Service
 public class ItemService {
-    private final ItemRepository itemDao;
-    private final UserRepository userDao;
+    private final ItemRepository itemRepository;
+    private final UserRepository userRepository;
     private final BookingRepository bookingDao;
     private final CommentRepository commentDao;
     private final ItemRequestRepository itemRequestDao;
 
     public ItemDto createItem(ItemDto dto, Long userId) {
-        User user = userDao.findById(userId).orElseThrow(() -> new NoSuchElementException("Пользователь не найден."));
+        User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("Пользователь не найден."));
 
         Item item = ItemMapper.toItem(dto, doRequests(dto));
         item.setOwner(user);
 
-        Item savedItem = itemDao.save(item);
+        Item savedItem = itemRepository.save(item);
         log.info("Добавлена вещь {}", savedItem);
         return ItemMapper.doItemDto(item);
     }
 
     public ItemDto updateItem(ItemDto dto, long itemId, long userId) {
-        User user = userDao.findById(userId).orElseThrow(() -> new NoSuchElementException("Пользователь не найден."));
+        User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("Пользователь не найден."));
 
-        Item oldItem = itemDao.findById(itemId).orElseThrow(() -> new NoSuchElementException("Вещь не найдена."));
+        Item oldItem = itemRepository.findById(itemId).orElseThrow(() -> new NoSuchElementException("Вещь не найдена."));
 
         Item item = ItemMapper.toItem(dto, doRequests(dto));
         if (item.getName() == null) {
@@ -71,14 +71,14 @@ public class ItemService {
         item.setId(itemId);
         item.setOwner(user);
 
-        Item newItem = itemDao.save(item);
+        Item newItem = itemRepository.save(item);
         log.info("Обновлена вещь {}", newItem);
         return ItemMapper.doItemDto(newItem);
     }
 
     @Transactional(readOnly = true)
     public ItemDtoByOwner findItemById(long userId, long itemId) {
-        Item item = itemDao.findById(itemId).orElseThrow(() -> new ObjectNotFoundException("Вещь не найдена."));
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> new ObjectNotFoundException("Вещь не найдена."));
         List<Comment> comments = commentDao.findByItemId(itemId);
 
         LocalDateTime now = LocalDateTime.now();
@@ -93,7 +93,7 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public List<ItemDtoByOwner> findAll(long userId) {
-        List<Item> userItems = itemDao.findItemsByOwnerId(userId);
+        List<Item> userItems = itemRepository.findItemsByOwnerId(userId);
         List<Comment> comments = commentDao.findByItemIdIn(userItems.stream()
                 .map(Item::getId)
                 .collect(toList()));
@@ -112,27 +112,17 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public List<ItemDto> findItemByDescription(String text) {
-//        if (text.isBlank() || text.isEmpty()) {
-//            return Collections.emptyList();
-//            //return new ArrayList<>();
-//        }
-//        log.info("Найден список вещей по текстовому запросу {}", text);
-//        return itemDao.findByAvailableTrueAndDescriptionContainingIgnoreCaseOrNameContainingIgnoreCase(text, text)
-//                .stream()
-//                .map(ItemMapper::doItemDto)
-//                .collect(toList());
-//    }
         if ((text != null) && (!text.isEmpty()) && (!text.isBlank())) {
             //text = text.toLowerCase();
-            return itemDao.getItemsBySearchQuery(text).stream()
+            return itemRepository.getItemsBySearchQuery(text).stream()
                     .map(ItemMapper::doItemDto)
                     .collect(toList());
         } else return new ArrayList<>();
     }
 
     public CommentDto addComment(CommentDto commentDto, long userId, long itemId) {
-        User user = userDao.findById(userId).orElseThrow(() -> new AlreadyExistException("Пользователь не найден."));
-        Item item = itemDao.findById(itemId).orElseThrow(() -> new NotValidParameterException("Вещь не найдена."));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AlreadyExistException("Пользователь не найден."));
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> new NotValidParameterException("Вещь не найдена."));
         Booking booking = bookingDao
                 .findTopByStatusNotLikeAndBookerIdAndItemIdOrderByEndAsc(BookingStatus.REJECTED, userId, itemId);
         Comment comment = CommentMapper.toComment(commentDto, user, item);
@@ -148,9 +138,9 @@ public class ItemService {
     }
 
     public void removeItemById(long userId, long itemId) {
-        itemDao.findById(itemId).orElseThrow(() -> new ObjectNotFoundException("Вещь с не найдена."));
-        checkItemAccess(itemDao, userId, itemId);
-        itemDao.deleteById(itemId);
+        itemRepository.findById(itemId).orElseThrow(() -> new ObjectNotFoundException("Вещь с не найдена."));
+        checkItemAccess(itemRepository, userId, itemId);
+        itemRepository.deleteById(itemId);
         log.info("Удалена вещь с айди {}", itemId);
     }
 

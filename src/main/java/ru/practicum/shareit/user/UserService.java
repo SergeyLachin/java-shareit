@@ -18,35 +18,35 @@ import java.util.stream.Collectors;
 @Transactional
 @RequiredArgsConstructor
 public class  UserService {
-    private final UserRepository userDao;
+    private final UserRepository userRepository;
 
     public UserDto createUser(UserDto dto) {
         validateUser(dto);
         User user = UserMapper.toUser(dto);
-        User savedUser = userDao.save(user);
+        User savedUser = userRepository.save(user);
         log.info("Создан пользователь {}.", savedUser);
         return UserMapper.doUserDto(savedUser);
     }
 
     @Transactional(readOnly = true)
     public UserDto findUserById(long id) {
-        User user = userDao.findById(id).orElseThrow(() -> new ObjectNotFoundException("Пользователь не найден."));
+        User user = userRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Пользователь не найден."));
         log.info("Найден пользователь с айди {}.", id);
         return UserMapper.doUserDto(user);
     }
 
     public UserDto updateUser(UserDto dto, long id) {
-        User oldUser = userDao.findById(id).orElseThrow(() -> new ObjectNotFoundException("Пользователь не найден."));
+        User oldUser = userRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Пользователь не найден."));
         if (dto.getId() == null) {
             dto.setId(id);
         }
-        User user = userDao.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Пользователь с ID=" + id + " не найден!"));
         if (dto.getName() != null) {
             user.setName(dto.getName());
         }
         if ((dto.getEmail() != null) && (dto.getEmail() != user.getEmail())) {
-            if (userDao.findByEmail(dto.getEmail())
+            if (userRepository.findByEmail(dto.getEmail())
                     .stream()
                     .filter(u -> u.getEmail().equals(dto.getEmail()))
                     .allMatch(u -> u.getId().equals(dto.getId()))) {
@@ -57,26 +57,19 @@ public class  UserService {
 
         }
 
-//        if (dto.getName() != null && !dto.getName().isBlank()) {
-//            oldUser.setName(dto.getName());
-//        }
-//        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-//            oldUser.setEmail(dto.getEmail());
-//        }
-
-        User savedUser = userDao.save(oldUser);
+        User savedUser = userRepository.save(oldUser);
         log.info("Пользователь с айди {} успешно обновлен.", id);
         return UserMapper.doUserDto(savedUser);
     }
 
     public void removeUserById(long id) {
-        userDao.deleteById(id);
+        userRepository.deleteById(id);
         log.info("Пользователь с айди успешно удален {}.", id);
     }
 
     @Transactional(readOnly = true)
     public List<UserDto> findAll() {
-        List<UserDto> users = userDao.findAll().stream()
+        List<UserDto> users = userRepository.findAll().stream()
                 .map(UserMapper::doUserDto)
                 .collect(Collectors.toList());
         log.info("Всё пользователи успешно получены.");
