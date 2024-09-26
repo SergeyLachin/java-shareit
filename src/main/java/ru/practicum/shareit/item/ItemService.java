@@ -29,6 +29,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
+
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
@@ -95,7 +97,7 @@ public class ItemService {
         List<Item> userItems = itemDao.findItemsByOwnerId(userId);
         List<Comment> comments = commentDao.findByItemIdIn(userItems.stream()
                 .map(Item::getId)
-                .collect(Collectors.toList()));
+                .collect(toList()));
         LocalDateTime now = LocalDateTime.now();
 
         log.info("Найден список вещей пользователя с айди {}", userId);
@@ -106,19 +108,27 @@ public class ItemService {
                         bookingDao.findByItemIdAndItemOwnerIdAndStartIsAfterAndStatusIsNot(item.getId(), userId, now,
                                 BookingStatus.REJECTED),
                         comments))
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @Transactional(readOnly = true)
     public List<ItemDto> findItemByDescription(String text) {
-        if (text.isBlank()) {
-            return Collections.emptyList();
-        }
-        log.info("Найден список вещей по текстовому запросу {}", text);
-        return itemDao.findByAvailableTrueAndDescriptionContainingIgnoreCaseOrNameContainingIgnoreCase(text, text)
-                .stream()
-                .map(ItemMapper::doItemDto)
-                .collect(Collectors.toList());
+//        if (text.isBlank() || text.isEmpty()) {
+//            return Collections.emptyList();
+//            //return new ArrayList<>();
+//        }
+//        log.info("Найден список вещей по текстовому запросу {}", text);
+//        return itemDao.findByAvailableTrueAndDescriptionContainingIgnoreCaseOrNameContainingIgnoreCase(text, text)
+//                .stream()
+//                .map(ItemMapper::doItemDto)
+//                .collect(toList());
+//    }
+        if ((text != null) && (!text.isEmpty()) && (!text.isBlank())) {
+            //text = text.toLowerCase();
+            return itemDao.getItemsBySearchQuery(text).stream()
+                    .map(ItemMapper::doItemDto)
+                    .collect(toList());
+        } else return new ArrayList<>();
     }
 
     public CommentDto addComment(CommentDto commentDto, long userId, long itemId) {
