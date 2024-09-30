@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingOutputDto;
+import ru.practicum.shareit.exception.AccessDenied;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ public class BookingController {
 
     @PatchMapping("/{bookingId}")
     public BookingOutputDto confirmBookingByOwner(@RequestHeader(OWNER) Long userId,
-                                                  @PathVariable Long bookingId, @RequestParam Boolean approved) {
+                                                  @PathVariable Long bookingId, @RequestParam Boolean approved) throws AccessDenied {
         return bookingService.confirmBookingByOwner(userId, bookingId, approved);
     }
 

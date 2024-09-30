@@ -1,12 +1,8 @@
 package ru.practicum.shareit.item.dto;
 
-import ru.practicum.shareit.booking.dto.BookingMapper;
-import ru.practicum.shareit.booking.model.Booking;
-import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.model.ItemRequest;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,29 +26,5 @@ public class ItemMapper {
         item.setAvailable(dto.getAvailable());
         item.setRequest(!requests.isEmpty() ? requests : null);
         return item;
-    }
-
-    public static ItemDtoByOwner doItemDtoByOwner(Item item, List<Booking> lastBookings, List<Booking> nextBookings,
-                                                  List<Comment> comments) {
-        List<CommentDto> commentDto = comments.stream().map(CommentMapper::toCommentDto).collect(Collectors.toList());
-
-        Booking nextBooking = nextBookings.stream()
-//                .filter(booking -> booking.getItem().getId().equals(item.getId()))
-                .min(Comparator.comparing(Booking::getStart)).orElse(null);
-        Booking lastBooking = lastBookings.stream()
-//                .filter(booking -> booking.getItem().getId().equals(item.getId()))
-                .max(Comparator.comparing(Booking::getStart)).orElse(null);
-
-        return new ItemDtoByOwner(
-                item.getId(),
-                item.getName(),
-                item.getDescription(),
-                item.getAvailable(),
-                item.getRequest() != null ?
-                        item.getRequest().stream().map(ItemRequest::getId).collect(Collectors.toList()) : null,
-                lastBooking != null ? BookingMapper.doBookingDto(lastBooking) : null,
-                nextBooking != null ? BookingMapper.doBookingDto(nextBooking) : null,
-                commentDto
-        );
     }
 }

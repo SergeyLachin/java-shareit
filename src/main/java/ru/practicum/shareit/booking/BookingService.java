@@ -13,6 +13,7 @@ import ru.practicum.shareit.booking.model.Booking;
 
 import ru.practicum.shareit.booking.status.BookingStatus;
 import ru.practicum.shareit.booking.status.State;
+import ru.practicum.shareit.exception.AccessDenied;
 import ru.practicum.shareit.exception.AlreadyExistException;
 import ru.practicum.shareit.exception.NotValidParameterException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
@@ -58,7 +59,7 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingOutputDto confirmBookingByOwner(Long userId, Long bookingId, boolean approved) {
+    public BookingOutputDto confirmBookingByOwner(Long userId, Long bookingId, boolean approved) throws AccessDenied {
         checkUserAvailability(userRepository, userId);
         Booking booking = bookingDao.findById(bookingId).orElseThrow(() ->
                 new ObjectNotFoundException("Бронирование с указанным айди не найдено."));

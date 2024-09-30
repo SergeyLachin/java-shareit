@@ -3,6 +3,7 @@ package ru.practicum.shareit.item;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.exception.AccessDenied;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemDtoByOwner;
@@ -45,7 +46,7 @@ public class ItemController {
 
     @DeleteMapping("{itemId}")
     public void removeItemById(@RequestHeader(OWNER) Long userId,
-                               @PathVariable Long itemId) {
+                               @PathVariable Long itemId) throws AccessDenied {
         service.removeItemById(userId, itemId);
     }
 

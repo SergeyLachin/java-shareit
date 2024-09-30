@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.status.BookingStatus;
 import ru.practicum.shareit.booking.repo.BookingRepository;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.exception.AccessDenied;
 import ru.practicum.shareit.exception.AlreadyExistException;
 import ru.practicum.shareit.exception.NotValidParameterException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
@@ -27,6 +29,7 @@ import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -48,7 +51,7 @@ public class ItemService {
         item.setOwner(user);
 
         Item savedItem = itemRepository.save(item);
-        log.info("Добавлена вещь {}", savedItem);
+        log.info("Added item {} with id {}", savedItem.getName(), savedItem.getId());
         return ItemMapper.doItemDto(item);
     }
 
@@ -72,7 +75,7 @@ public class ItemService {
         item.setOwner(user);
 
         Item newItem = itemRepository.save(item);
-        log.info("Обновлена вещь {}", newItem);
+        log.info("Updated item {} with id {}", newItem.getName(), newItem.getId());
         return ItemMapper.doItemDto(newItem);
     }
 
@@ -87,8 +90,8 @@ public class ItemService {
         List<Booking> nextBookings = bookingDao.findByItemIdAndItemOwnerIdAndStartIsAfterAndStatusIsNot(itemId, userId,
                 now, BookingStatus.REJECTED);
 
-        log.info("Найдена вещь с айди {}", itemId);
-        return ItemMapper.doItemDtoByOwner(item, lastBookings, nextBookings, comments);
+        log.info("Found a thing with id {}", itemId);
+        return doItemDtoByOwner(item, lastBookings, nextBookings, comments);
     }
 
     @Transactional(readOnly = true)
@@ -97,23 +100,19 @@ public class ItemService {
         List<Comment> comments = commentDao.findByItemIdIn(userItems.stream()
                 .map(Item::getId)
                 .collect(toList()));
-        LocalDateTime now = LocalDateTime.now();
 
-        log.info("Найден список вещей пользователя с айди {}", userId);
-        return userItems.stream()
-                .map(item -> ItemMapper.doItemDtoByOwner(item,
-                        bookingDao.findByItemIdAndItemOwnerIdAndStartIsBeforeAndStatusIsNot(item.getId(), userId, now,
-                                BookingStatus.REJECTED),
-                        bookingDao.findByItemIdAndItemOwnerIdAndStartIsAfterAndStatusIsNot(item.getId(), userId, now,
-                                BookingStatus.REJECTED),
-                        comments))
-                .collect(toList());
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> last = bookingDao.findAllByItemIdAndStartBeforeOrderByStartDesc(userId, now);
+        List<Booking> next = bookingDao.findAllByItemIdAndStartAfterOrderByStartDesc(userId, now);
+
+        log.info("Found a list of the user's belongings with id {}", userId);
+
+        return doItemDtoByOwnerList(userItems,last, next, comments);
     }
 
     @Transactional(readOnly = true)
     public List<ItemDto> findItemByDescription(String text) {
         if ((text != null) && (!text.isEmpty()) && (!text.isBlank())) {
-            //text = text.toLowerCase();
             return itemRepository.getItemsBySearchQuery(text).stream()
                     .map(ItemMapper::doItemDto)
                     .collect(toList());
@@ -137,11 +136,11 @@ public class ItemService {
         return CommentMapper.toCommentDto(commentDao.save(comment));
     }
 
-    public void removeItemById(long userId, long itemId) {
+    public void removeItemById(long userId, long itemId) throws AccessDenied {
         itemRepository.findById(itemId).orElseThrow(() -> new ObjectNotFoundException("Вещь с не найдена."));
         checkItemAccess(itemRepository, userId, itemId);
         itemRepository.deleteById(itemId);
-        log.info("Удалена вещь с айди {}", itemId);
+        log.info("The item was deleted from the ID {}", itemId);
     }
 
     private List<ItemRequest> doRequests(ItemDto dto) {
@@ -157,15 +156,51 @@ public class ItemService {
 
     public static void checkItemAvailability(ItemRepository itemDao, long itemId) {
         if (!itemDao.existsById(itemId)) {
-            throw new ObjectNotFoundException("Вещь с указанным айди не найдена.");
+            throw new ObjectNotFoundException("Вещь с id" + itemId + "не найдена.");
         }
     }
 
-    public static void checkItemAccess(ItemRepository itemDao, long userId, long itemId) {
+    public static void checkItemAccess(ItemRepository itemDao, long userId, long itemId) throws AccessDenied {
         Item item = itemDao.getReferenceById(itemId);
         Long ownerId = item.getOwner().getId();
         if (!Objects.equals(userId, ownerId)) {
-            throw new ObjectNotFoundException("Редактирование вещи доступно только владельцу.");
+            throw new AccessDenied("Пользователю с id" + userId + " запрещен доступ к вещи с id " + itemId);
         }
+    }
+
+    public static ItemDtoByOwner doItemDtoByOwner(Item item, List<Booking> lastBookings, List<Booking> nextBookings,
+                                                  List<Comment> comments) {
+        return new ItemDtoByOwner(
+                item.getId(),
+                item.getName(),
+                item.getDescription(),
+                item.getAvailable(),
+                item.getRequest() != null ?
+                        item.getRequest().stream().map(ItemRequest::getId).collect(Collectors.toList()) : null,
+                bookingLast(lastBookings) != null ? BookingMapper.doBookingDto(bookingLast(lastBookings)) : null,
+                bookingNext(nextBookings) != null ? BookingMapper.doBookingDto(bookingNext(nextBookings)) : null,
+                commentDto(comments)
+        );
+    }
+
+    private List<ItemDtoByOwner> doItemDtoByOwnerList(List<Item> its, List<Booking> lastBookings, List<Booking> nextBookings,
+                                                      List<Comment> comments) {
+        List<ItemDtoByOwner> list = new ArrayList<>();
+        for (Item item : its) {
+            list.add(doItemDtoByOwner(item, lastBookings, nextBookings, comments));
+        }
+        return list;
+    }
+
+    public static Booking bookingLast(List<Booking> lastBookings) {
+        return lastBookings.stream().max(Comparator.comparing(Booking::getStart)).orElse(null);
+    }
+
+    public static Booking bookingNext(List<Booking> nextBookings) {
+        return nextBookings.stream().min(Comparator.comparing(Booking::getStart)).orElse(null);
+    }
+
+    public static List<CommentDto> commentDto(List<Comment> comments) {
+        return comments.stream().map(CommentMapper::toCommentDto).collect(Collectors.toList());
     }
 }
