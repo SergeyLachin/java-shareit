@@ -1,95 +1,97 @@
 package ru.practicum.shareit.user;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.AlreadyExistException;
-import ru.practicum.shareit.exception.ObjectNotFoundException;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserMapper;
+import ru.practicum.shareit.user.repo.UserRepository;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repo.UserStorage;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
-@Getter
-@Slf4j
 @Service
+@Slf4j
+@Transactional
 @RequiredArgsConstructor
-public class UserService {
-    private final UserStorage userStorage;
-    Long id = 0L;
-    private User user;
+public class  UserService {
+    private final UserRepository userRepository;
 
-    public UserDto createUser(UserDto userDto) {
-        validateUser(userDto);
-        user = UserMapper.tuUser(userDto);
-        return UserMapper.tuUserDto(userStorage.createUser(user));
+    public UserDto createUser(UserDto dto) {
+        validateUser(dto);
+        User user = UserMapper.toUser(dto);
+        User savedUser = userRepository.save(user);
+        log.info("A user has been created {} ", savedUser.getName());
+        return UserMapper.doUserDto(savedUser);
     }
 
-    public List<UserDto> getUsers() {
-        List<User> users = userStorage.getUsers();
-        List<UserDto> dtoUsers = new ArrayList<>();
-        for (User user1 : users) {
-            dtoUsers.add(UserMapper.tuUserDto(user1));
-        }
-        return dtoUsers;
+    @Transactional(readOnly = true)
+    public UserDto findUserById(long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new AlreadyExistException("Пользователь не найден."));
+        log.info("A user with an ID was found {}", id);
+        return UserMapper.doUserDto(user);
     }
 
-    public UserDto  updateUser(Long id, UserDto userDto) {
-        if (userDto.getId() != null && !Objects.equals(id, userDto.getId())) {
-            throw  new ObjectNotFoundException("Пользователь с такими данными не найден");
+    public UserDto updateUser(UserDto dto, long id) {
+        User oldUser = userRepository.findById(id).orElseThrow(() -> new AlreadyExistException("Пользователь не найден."));
+        if (dto.getId() == null) {
+            dto.setId(id);
         }
-        if (getUserById(id) == null) {
-            throw new ObjectNotFoundException("Пользователь с запрашиваемым id не зарегистрирован.");
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AlreadyExistException("Пользователь с ID=" + id + " не найден!"));
+        if (dto.getName() != null) {
+            user.setName(dto.getName());
         }
-        UserDto oldUser = getUserById(id);
-        if (!Objects.equals(userDto.getEmail(), oldUser.getEmail())) {
-            checkUserUniqueness(userDto);
+        if ((dto.getEmail() != null) && (dto.getEmail() != user.getEmail())) {
+            if (userRepository.findByEmail(dto.getEmail())
+                    .stream()
+                    .filter(u -> u.getEmail().equals(dto.getEmail()))
+                    .allMatch(u -> u.getId().equals(dto.getId()))) {
+                user.setEmail(dto.getEmail());
+            } else {
+                throw new AlreadyExistException("Пользователь с E-mail=" + user.getEmail());
+            }
+
         }
-        if (userDto.getName() != null && !userDto.getName().isBlank()) {
-            oldUser.setName(userDto.getName());
-        }
-        if (userDto.getEmail() != null && !userDto.getEmail().isBlank()) {
-            oldUser.setEmail(userDto.getEmail());
-        }
-        user = UserMapper.tuUser(oldUser);
-        return UserMapper.tuUserDto(userStorage.updateUser(id, user));
+
+        User savedUser = userRepository.save(oldUser);
+        log.info("User with ID {} has been successfully updated ", id);
+        return UserMapper.doUserDto(savedUser);
     }
 
-    public UserDto getUserById(Long id) {
-        return UserMapper.tuUserDto(userStorage.getUserById(id));
+    public void removeUserById(long id) {
+        userRepository.deleteById(id);
+        log.info("User with ID has been successfully deleted {} ", id);
     }
 
-    public void deleteUserById(Long id) {
-        userStorage.getUserById(id);
+    @Transactional(readOnly = true)
+    public List<UserDto> findAll() {
+        List<UserDto> users = userRepository.findAll().stream()
+                .map(UserMapper::doUserDto)
+                .collect(Collectors.toList());
+        log.info("All users have been successfully received.");
+        return users;
     }
 
     public void validateUser(UserDto userDto) {
-        if (userDto.getId() == null || userDto.getId() <= 0) {
-            userDto.setId(++id);
-            log.info("Некорректно указан id.");
-        }
         if (userDto.getEmail().contains(" ") || !userDto.getEmail().contains("@")) {
-            log.warn("Ошибка в данных - неверный адрес электронной почты {}", userDto.getEmail());
-            throw new ObjectNotFoundException("Неверный адрес электронной почты");
+            log.warn("Data error - invalid email address {}", userDto.getEmail());
+            throw new AlreadyExistException("Неверный адрес электронной почты");
         }
-        List<UserDto> users = getUsers();
+        List<UserDto> users = findAll();
         for (UserDto user1 : users) {
             if (userDto.getEmail().contains(user1.getEmail())) {
-                throw new ObjectNotFoundException("Неверный адрес электронной почты");
+                throw new AlreadyExistException("Пользовател с Email " + userDto.getEmail());
             }
         }
     }
 
-    private void checkUserUniqueness(UserDto user) {
-        String email = user.getEmail();
-        boolean match = getUsers().stream().map(UserDto::getEmail).anyMatch(mail -> Objects.equals(mail, email));
-        if (match) {
-            throw new AlreadyExistException(user);
+    public static void checkUserAvailability(UserRepository dao, long id) {
+        if (!dao.existsById(id)) {
+            throw new AlreadyExistException("Пользователь с запрашиваемым айди не зарегистрирован.");
         }
     }
 }

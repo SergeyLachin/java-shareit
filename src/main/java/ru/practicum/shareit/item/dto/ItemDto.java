@@ -1,36 +1,28 @@
 package ru.practicum.shareit.item.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import ru.practicum.shareit.request.ItemRequest;
-import ru.practicum.shareit.user.model.User;
+import lombok.Getter;
+import lombok.Setter;
 
 
-/**
- * TODO Sprint add-controllers.
- */
-@Data
-@Builder
+import java.util.List;
+
 @AllArgsConstructor
-@NoArgsConstructor
+@Getter
+@Setter
 public class ItemDto {
     private Long id;
-    @NotBlank
-    private String name;
-    @NotBlank
-    private String description;
-    private Boolean available;
-    private Long idUser;
-    private User owner;
-    private ItemRequest request;
 
-    public ItemDto(Long id, String name, String description, Boolean available) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.available = available;
-    }
+    @NotBlank(message = "Наименование элемента отсутствует.")
+    private String name;
+
+    @NotBlank(message = "Описание элемента пустое.")
+    private String description;
+
+    @NotNull(message = "Доступность вещи не указана.")
+    private Boolean available;
+
+    private List<Long> requestId;
 }
